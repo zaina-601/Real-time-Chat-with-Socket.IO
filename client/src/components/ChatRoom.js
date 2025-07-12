@@ -10,7 +10,7 @@ const ChatRoom = ({ user }) => {
 
   useEffect(() => {
     socket.emit('login', user, (res) => {
-      if (res.success) console.log('✅ Logged in as', user);
+      if (res.success) console.log('Logged in as', user);
     });
 
     socket.on('updateUsers', (list) => {
