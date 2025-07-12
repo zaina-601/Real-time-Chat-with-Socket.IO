@@ -7,10 +7,8 @@ const Chat = ({ user, to }) => {
   const [input, setInput] = useState('');
   const bottomRef = useRef(null);
 
-  // Handle receiving messages
   useEffect(() => {
     const handleReceiveMessage = (msg) => {
-      // Only show messages between current user and selected chat partner
       if (
         (msg.from === user && msg.to === to) ||
         (msg.from === to && msg.to === user)
@@ -26,7 +24,6 @@ const Chat = ({ user, to }) => {
     };
   }, [socket, user, to]);
 
-  // Auto scroll to bottom on new message
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -41,8 +38,6 @@ const Chat = ({ user, to }) => {
       text: input,
       time: new Date().toLocaleTimeString(),
     };
-
-    // ✅ Do not update messages locally — server will emit back
     socket.emit('sendMessage', message);
 
     setInput('');
@@ -70,7 +65,7 @@ const Chat = ({ user, to }) => {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input Area */}
+
       <form
         onSubmit={sendMessage}
         className="flex items-center p-3 bg-lightDark border-t border-gray-700"
