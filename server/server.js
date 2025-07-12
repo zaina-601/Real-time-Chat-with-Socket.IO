@@ -17,19 +17,17 @@ const io = new Server(server, {
 const socketToUser = new Map();
 
 io.on('connection', (socket) => {
-  console.log('✅ New socket connected:', socket.id);
+  console.log(' New socket connected:', socket.id);
 
   socket.on('login', (username, callback) => {
-    // Always set the username to avoid duplicates
+
     socketToUser.set(socket.id, username);
-    console.log('🔐', username, 'logged in');
+    console.log( username, 'logged in');
 
     const allUsers = Array.from(socketToUser.values());
-    
-    // Send full user list to the new user
+
     socket.emit('updateUsers', allUsers);
 
-    // Broadcast updated user list to all other users
     socket.broadcast.emit('updateUsers', allUsers);
 
     if (callback) callback({ success: true });
@@ -40,13 +38,13 @@ io.on('connection', (socket) => {
     if (targetSocketId) {
       io.to(targetSocketId).emit('receiveMessage', msg);
     }
-    socket.emit('receiveMessage', msg); // Echo to sender
+    socket.emit('receiveMessage', msg);
   });
 
   socket.on('disconnect', () => {
     const username = socketToUser.get(socket.id);
     if (username) {
-      console.log('❌', username, 'disconnected');
+      console.log(username, 'disconnected');
       socketToUser.delete(socket.id);
 
       const updatedUsers = Array.from(socketToUser.values());
@@ -58,5 +56,5 @@ io.on('connection', (socket) => {
 
 const PORT = 4000;
 server.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(` Server running on port ${PORT}`);
 });
