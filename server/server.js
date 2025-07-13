@@ -17,18 +17,15 @@ const io = new Server(server, {
 const socketToUser = new Map();
 
 io.on('connection', (socket) => {
-  console.log(' New socket connected:', socket.id);
+  console.log('New socket connected:', socket.id);
 
   socket.on('login', (username, callback) => {
-
     socketToUser.set(socket.id, username);
-    console.log( username, 'logged in');
+    console.log(username, 'logged in');
 
     const allUsers = Array.from(socketToUser.values());
 
-    socket.emit('updateUsers', allUsers);
-
-    socket.broadcast.emit('updateUsers', allUsers);
+    io.emit('updateUsers', allUsers);
 
     if (callback) callback({ success: true });
   });
@@ -41,12 +38,25 @@ io.on('connection', (socket) => {
     socket.emit('receiveMessage', msg);
   });
 
+  socket.on('typing', ({ to, from }) => {
+    const targetSocketId = [...socketToUser.entries()].find(([_, name]) => name === to)?.[0];
+    if (targetSocketId) {
+      io.to(targetSocketId).emit('typing', { from });
+    }
+  });
+
+  socket.on('stopTyping', ({ to, from }) => {
+    const targetSocketId = [...socketToUser.entries()].find(([_, name]) => name === to)?.[0];
+    if (targetSocketId) {
+      io.to(targetSocketId).emit('stopTyping', { from });
+    }
+  });
+
   socket.on('disconnect', () => {
     const username = socketToUser.get(socket.id);
     if (username) {
       console.log(username, 'disconnected');
       socketToUser.delete(socket.id);
-
       const updatedUsers = Array.from(socketToUser.values());
       io.emit('updateUsers', updatedUsers);
       io.emit('removeUser', username);
