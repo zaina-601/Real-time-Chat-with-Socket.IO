@@ -5,7 +5,9 @@ const Chat = ({ user, to }) => {
   const socket = useContext(SocketContext);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
   const bottomRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
 
   useEffect(() => {
     const handleReceiveMessage = (msg) => {
@@ -19,14 +21,28 @@ const Chat = ({ user, to }) => {
 
     socket.on('receiveMessage', handleReceiveMessage);
 
+    socket.on('typing', ({ from }) => {
+      if (from === to) {
+        setIsTyping(true);
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 2000);
+      }
+    });
+
+    socket.on('stopTyping', ({ from }) => {
+      if (from === to) setIsTyping(false);
+    });
+
     return () => {
       socket.off('receiveMessage', handleReceiveMessage);
+      socket.off('typing');
+      socket.off('stopTyping');
     };
   }, [socket, user, to]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, isTyping]);
 
   const sendMessage = (e) => {
     e.preventDefault();
@@ -38,22 +54,33 @@ const Chat = ({ user, to }) => {
       text: input,
       time: new Date().toLocaleTimeString(),
     };
+
     socket.emit('sendMessage', message);
+    socket.emit('stopTyping', { from: user, to });
 
     setInput('');
   };
 
+  const handleTyping = (e) => {
+    setInput(e.target.value);
+    socket.emit('typing', { from: user, to });
+
+    clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      socket.emit('stopTyping', { from: user, to });
+    }, 2000);
+  };
+
   return (
     <div className="flex flex-col h-full">
-      {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 bg-dark text-white">
         {messages.map((msg, i) => (
           <div
             key={i}
             className={`max-w-xs p-3 mb-2 rounded-lg ${
               msg.from === user
-                ? 'ml-auto bg-green-600 text-white'
-                : 'mr-auto bg-blue-600 text-white'
+                ? 'ml-auto bg-green-600'
+                : 'mr-auto bg-blue-600'
             }`}
           >
             <p className="break-words">{msg.text}</p>
@@ -62,9 +89,11 @@ const Chat = ({ user, to }) => {
             </span>
           </div>
         ))}
+        {isTyping && (
+          <p className="text-sm text-gray-400 italic">{to} is typing...</p>
+        )}
         <div ref={bottomRef} />
       </div>
-
 
       <form
         onSubmit={sendMessage}
@@ -73,7 +102,7 @@ const Chat = ({ user, to }) => {
         <input
           type="text"
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={handleTyping}
           placeholder="Type a message..."
           className="flex-1 p-2 rounded bg-dark text-white placeholder-gray-400 outline-none"
         />
